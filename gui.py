@@ -25,9 +25,32 @@ MUTED     = "#888077"
 BORDER    = "#ddd8d0"
 
 EXTENSIONS = [
-    "txt", "md",   "py",   "js",  "ts",
-    "json","java", "c",    "cpp", "html",
-    "css", "xml",  "yaml", "yml", "sh",
+    # Testo / markup
+    "txt", "md",   "rst",  "tex",  "html", "htm",
+    "css", "xml",  "yaml", "yml",  "toml", "ini",
+    "json","csv",
+    # Script / shell
+    "sh",  "bash", "zsh",  "bat",  "cmd",  "ps1",
+    # Python
+    "py",  "pyw",
+    # Web / frontend
+    "js",  "ts",   "jsx",  "tsx",  "vue",  "svelte",
+    # JVM
+    "java","kt",   "scala","groovy",
+    # C family
+    "c",   "cpp",  "cc",   "cxx",  "h",    "hpp",
+    # C# / .NET
+    "cs",  "vb",
+    # Database
+    "sql",
+    # Sistemi / infra
+    "tf",  "hcl",  "env",  "dockerfile",
+    # Altri linguaggi popolari
+    "go",  "rs",   "swift","dart",
+    "rb",  "php",  "pl",   "pm",
+    "r",   "lua",  "ex",   "exs",
+    # Config
+    "conf","cfg",  "properties","prefs",
 ]
 
 # Estensioni attive di default
@@ -209,12 +232,20 @@ class MergeGUI(TkinterDnD.Tk):
         self._label(body, "Che tipo di file vuoi raccogliere?")
         ext_card = self._card(body)
 
-        grid = ctk.CTkFrame(ext_card, fg_color="transparent")
-        grid.pack(fill="x", padx=14, pady=(14, 6))
+        # Sottosezione scrollabile per le checkbox — altezza fissa, scorribile
+        scroll_frame = ctk.CTkScrollableFrame(
+            ext_card,
+            fg_color="transparent",
+            height=180,                           # altezza visibile
+            scrollbar_button_color=BORDER,
+            scrollbar_button_hover_color=MUTED,
+        )
+        scroll_frame.pack(fill="x", padx=14, pady=(14, 6))
 
+        # Griglia 5 colonne dentro lo scroll frame
         for i, ext in enumerate(EXTENSIONS):
             ctk.CTkCheckBox(
-                grid, text=f".{ext}",
+                scroll_frame, text=f".{ext}",
                 variable=self.ext_vars[ext],
                 font=self.F_BODY,
                 fg_color=ACCENT, hover_color=ACCENT_H,
