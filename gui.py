@@ -203,7 +203,7 @@ class MergeGUI(TkinterDnD.Tk):
         btn_row.pack(fill="x", pady=(6, 0))
 
         ctk.CTkButton(
-            btn_row, text="Scegli cartella…",
+            btn_row, text="Scegli cartella\u2026",
             font=self.F_SMALL, height=36, width=170,
             fg_color=BORDER, hover_color="#ccc9c0",
             text_color=TEXT, corner_radius=8,
@@ -211,11 +211,19 @@ class MergeGUI(TkinterDnD.Tk):
         ).pack(side="left", padx=(0, 8))
 
         ctk.CTkButton(
-            btn_row, text="Scegli file…",
+            btn_row, text="Scegli file\u2026",
             font=self.F_SMALL, height=36, width=140,
             fg_color=BORDER, hover_color="#ccc9c0",
             text_color=TEXT, corner_radius=8,
             command=self._choose_files
+        ).pack(side="left", padx=(0, 8))
+
+        ctk.CTkButton(
+            btn_row, text="\U0001f5d1  Svuota lista",
+            font=self.F_SMALL, height=36, width=140,
+            fg_color="#fde8df", hover_color="#f9cfc0",
+            text_color=ACCENT, corner_radius=8,
+            command=self._clear_sources
         ).pack(side="left")
 
         # ── 2. Nome output ───────────────────────────────────────────────────────
@@ -341,25 +349,40 @@ class MergeGUI(TkinterDnD.Tk):
         self._set_sources(paths)
 
     def _set_sources(self, paths: list[str]):
-        self._sources = paths
+        # Aggiunge i nuovi path a quelli già presenti, senza duplicati
+        existing = set(os.path.abspath(p) for p in self._sources)
+        for p in paths:
+            ap = os.path.abspath(p)
+            if ap not in existing:
+                existing.add(ap)
+                self._sources.append(p)
 
-        # Aggiorna label drop zone
-        if len(paths) == 1:
-            name = os.path.basename(paths[0]) or paths[0]
+        self._refresh_drop_label()
+
+        # Scansiona le estensioni su TUTTE le sorgenti accumulate
+        self._set_status("Scansione estensioni…", MUTED)
+        threading.Thread(target=self._scan_and_check,
+                         args=(list(self._sources),), daemon=True).start()
+
+    def _refresh_drop_label(self):
+        """Aggiorna la label della drop zone in base alle sorgenti accumulate."""
+        n = len(self._sources)
+        if n == 0:
+            self._drop_label.configure(
+                text="⬇   Trascina qui\nfile · cartelle · .zip",
+                text_color=MUTED
+            )
+        elif n == 1:
+            name = os.path.basename(self._sources[0]) or self._sources[0]
             self._drop_label.configure(
                 text=f"✓  {name}",
                 text_color=SUCCESS
             )
         else:
             self._drop_label.configure(
-                text=f"✓  {len(paths)} elementi selezionati",
+                text=f"✓  {n} elementi in lista",
                 text_color=SUCCESS
             )
-
-        # Scansiona le estensioni in background e spunta quelle trovate
-        self._set_status("Scansione estensioni…", MUTED)
-        threading.Thread(target=self._scan_and_check,
-                         args=(paths,), daemon=True).start()
 
     def _scan_and_check(self, paths):
         try:
@@ -384,6 +407,14 @@ class MergeGUI(TkinterDnD.Tk):
             self._set_status(
                 "Nessuna estensione riconosciuta. Seleziona manualmente.", MUTED
             )
+
+    # ── Svuota lista ────────────────────────────────────────────
+    def _clear_sources(self):
+        self._sources = []
+        self._refresh_drop_label()
+        for ext, var in self.ext_vars.items():
+            var.set(1 if ext in DEFAULT_ON else 0)
+        self._set_status("Lista svuotata.", MUTED)
 
     # ── Scegli con dialogo ──────────────────────────────────────────────────────
     def _choose_folder(self):
