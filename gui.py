@@ -242,9 +242,12 @@ class MergeGUI(TkinterDnD.Tk):
         )
         scroll_frame.pack(fill="x", padx=14, pady=(14, 6))
 
-        # Griglia 5 colonne dentro lo scroll frame
-        for i, ext in enumerate(EXTENSIONS):
-            ctk.CTkCheckBox(
+        # --- INIZIO GESTIONE GRIGLIA DINAMICA ---
+        self._ext_checkboxes = []
+        
+        # 1. Creiamo le checkbox e le salviamo in una lista (senza posizionarle subito)
+        for ext in EXTENSIONS:
+            cb = ctk.CTkCheckBox(
                 scroll_frame, text=f".{ext}",
                 variable=self.ext_vars[ext],
                 font=self.F_BODY,
@@ -252,7 +255,30 @@ class MergeGUI(TkinterDnD.Tk):
                 checkmark_color="#fff",
                 border_color=BORDER,
                 text_color=TEXT, corner_radius=5
-            ).grid(row=i // 5, column=i % 5, sticky="w", padx=10, pady=6)
+            )
+            self._ext_checkboxes.append(cb)
+
+        self._current_cols = 0
+
+        # 2. Funzione che ricalcola e riposiziona la griglia in base alla larghezza
+        def reflow_grid(event):
+            # Aumentiamo i margini di sicurezza (40px invece di 28px)
+            available_width = event.width - 40 
+            
+            # Portiamo l'ingombro stimato a 140px per colonna. 
+            # In questo modo la colonna scatta SOLO quando c'è spazio abbondante 
+            # anche per i testi più lunghi.
+            cols = max(1, available_width // 140)
+
+            # Ridisegniamo la griglia solo se il numero di colonne è cambiato
+            if cols != self._current_cols:
+                self._current_cols = cols
+                for i, cb in enumerate(self._ext_checkboxes):
+                    cb.grid(row=i // cols, column=i % cols, sticky="w", padx=10, pady=6)
+
+        # 3. Leghiamo l'evento di ridimensionamento alla "ext_card" madre
+        ext_card.bind("<Configure>", reflow_grid)
+        # --- FINE GESTIONE GRIGLIA DINAMICA ---
 
         ctrl = ctk.CTkFrame(ext_card, fg_color="transparent")
         ctrl.pack(fill="x", padx=14, pady=(4, 14))
